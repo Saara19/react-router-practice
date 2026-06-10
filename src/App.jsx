@@ -1,149 +1,149 @@
-import "./cde.css";
-import { createBrowserRouter, data, Link, Outlet, RouterProvider,useLoaderData,useNavigate,useParams} from "react-router-dom"
-const router=  createBrowserRouter([
+import { createBrowserRouter, Outlet,Form,useNavigation ,RouterProvider,useLoaderData,useNavigate, redirect } from "react-router-dom"
+
+
+const router=createBrowserRouter([
 {
   path:"/",
-  element:<Layout />,
-  children:[
-{index:true,
-  element:<Home />
+  element:<Home />,
+
+
 },
-{path :"user",
+{
+path:"/users",
+element:<Users />,
+loader:preperLoder,
+children:[
+{
+  path:":id",
   element:<User />,
-  children:[
-    {
-      path:":n",
-      element:<UserDetails />,
-      loader:handleLoderForDetales,
-      errorElement:<Errorpage />
-
-    }
-  ],
-loader: handleLoader 
-  //errorElement:<E
-  // rrorElement />
-
-},
-{path:"about",
-  element:<About />
-
-},
-  ]
+loader:preperLoderUser
 
 }
+]
 
+
+},
+{
+  path:"/adduser",
+  element:<AddUser />,
+  action:perperNewUser
+},
+{
+  path: "/success",
+  element: <Success />
+}
 
 ])
-export default function App() {
+export default function App(){
   return <RouterProvider router={router} />
 }
-function Layout(){
+ function Home(){
+    const navigation = useNavigate();
+  return (
+    <>
+    <h1>Users Dashboard</h1>
+    <button onClick={()=>navigation("/users")}> go to users</button>
+    <button onClick={()=>navigation("adduser")}>Add User</button>
+    </>
+  )
+ }
+ function Users(){
+  const navigation = useNavigate();
+  const allUser=useLoaderData()
   return(
-    <>
-    <nav>
-<Link to={"/"}>Home</Link>
-<Link to={"/about"}>About</Link>
-<Link to={"/user"}>Users</Link>
-</nav>
-      <Outlet />
+    <div>
+  <Outlet />
+<ul>
+  {allUser.map(u=>
+  <li   style={{
+    backgroundColor: "blue",
+    color: "white",
+    padding: "10px",
+    margin: "10px 0",
+    cursor: "pointer",
+  }}  key={u.id} onClick={()=>navigation(`/users/${u.id}`)} ><p>name:{u.name}</p><p>Email:{u.email}</p>
+    <br />
+  </li>
 
-    </>
-  )
-}
-function Home (){
-  const naveget=useNavigate()
-  return (
-<>
-<h1>Users Directory</h1>
-
-<p>
-  A simple React Router project demonstrating nested routes,
-  dynamic routes, loaders, navigation, and error handling.
-  Browse the users list and explore user profiles.
-</p>
-<button onClick={()=>naveget("/about")}>go to about</button>
-
-</>
-
-  )
-}
-function About(){
-  return (
-
-    <>
-    <h1>Im from about </h1>
-
-    </>
-  )
   
-}
-function User() {
-  const users = useLoaderData();
-  const navigate = useNavigate();
+  )}
+</ul>
+</div>
+  ) 
+
+ }
+
+
+ function User() {
+  const data = useLoaderData();
 
   return (
-    <div className="users-layout">
-      <div className="users-list">
-        {users.map((u) => (
-          <button
-            key={u.id}
-            onClick={() => navigate(`/user/${u.id}`)}
-          >
-            {u.name}
-          </button>
-        ))}
-      </div>
-
-      <div className="user-details">
-        <Outlet />
-      </div>
+    <div className="user-details">
+      <h2>{data.name}</h2>
+      <p>Email: {data.email}</p>
+      <p>Website: {data.website}</p>
+      <p>Phone: {data.phone}</p>
     </div>
   );
 }
-///هذا لودير للابن لانه لا يجوز استخد\ام لودير الاب هنا 
- async function handleLoderForDetales({params }){
-  const res=await fetch("https://jsonplaceholder.typicode.com/users")
- const data = await res.json();
- if (Number( params.n) === 8){
-   throw new Error("User Not Found");
-  
+ function AddUser(){
+  const navigation = useNavigation();
+  return(
+<Form method="post">
+  <label htmlFor="username">Username</label>
+  <input
+    id="username"
+    type="text"
+    name="username"
+  />
+
+  <label htmlFor="email">Email</label>
+  <input
+    id="email"
+    type="email"
+    name="email"
+  />
+
+  <label htmlFor="age">Age</label>
+  <input
+    id="age"
+    type="number"
+    name="age"
+  />
+
+  <button>
+    {navigation.state === "submitting"
+      ? "Sending..."
+      : "Send"}
+  </button>
+</Form>
+
+  )
  }
-  return data;
-  
+ function Success(){
+  return<h2>Success</h2>
  }
-function UserDetails() {
-  const users = useLoaderData();
-  const { n } = useParams();
+ async function preperLoder(){
+const users=await fetch("https://jsonplaceholder.typicode.com/users")
+const data= await users.json();
+console.log(data)
+return data; 
+ }
 
-  const user = users.find((u) => u.id === Number(n)
+ async function preperLoderUser({params}){
+const users=await fetch(`https://jsonplaceholder.typicode.com/users/${params.id}`)
+const data=await users.json();
 
-);
-      
-
-
-  return (
-  <div className="user-card">
-    <h2>Name: {user.name}</h2>
-    <h2>
-      Address: {user.address.street} {user.address.suite}
-      {" "}
-      {user.address.city}
-    </h2>
-    <h2>Company: {user.company.name}</h2>
-    <h2>Email: {user.email}</h2>
-  </div>
-);}
-
- async function handleLoader(){
-  const res = await fetch("https://jsonplaceholder.typicode.com/users")
-  const data=  await res.json()
-  console.log(data)
-  return data ;
+return data; 
 }
-function Errorpage() {
-  return (
-    <div className="error-page">
-      <h1>This User Not Found</h1>
-    </div>
+async function perperNewUser({ request }) {
+  const formData = await request.formData();
+
+  const username = formData.get("username");
+
+  await new Promise((resolve) =>
+    setTimeout(resolve, 3000)
   );
+
+  return redirect("/success");
 }
